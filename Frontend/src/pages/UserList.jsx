@@ -4,181 +4,110 @@ import { useNavigate } from "react-router-dom";
 const UserList = () => {
   const [users, setUsers] = useState([]);
   const [selected, setSelected] = useState([]);
-  const [statusMessage, setStatusMessage] = useState("");
+  const [currentUserEmail, setCurrentUserEmail] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("https://usermanagementbackendapp-4.onrender.com/api/User", {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
+    fetch("http://localhost:5199/api/User", {
+      credentials: "include",
     })
-      .then(async (res) => {
-        if (res.status === 401 || res.status === 403) {
-          navigate("/");
-        } else {
-          const data = await res.json();
-          const sorted = data.sort(
-            (a, b) => new Date(b.lastLogin) - new Date(a.lastLogin)
-          );
-          setUsers(sorted);
-        }
-      })
-      .catch(() => navigate("/"));
-  }, [navigate]);
+      .then((res) => res.json())
+      .then((data) => {
+        setUsers(data.users);
+        setCurrentUserEmail(data.currentUserEmail);
+      });
+  }, []);
 
-  const toggleSelect = (id) => {
+  const toggleSelection = (id: string) => {
     setSelected((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
-  const toggleSelectAll = () => {
-    if (selected.length === users.length) {
-      setSelected([]);
-    } else {
-      setSelected(users.map((u) => u.id));
-    }
-  };
-
-  const parseJwt = (token) => {
-    if (!token) return null;
-    try {
-      return JSON.parse(atob(token.split(".")[1]));
-    } catch {
-      return null;
-    }
-  };
-
-  const handleAction = (action) => {
-    fetch(`https://usermanagementbackendapp-4.onrender.com/api/User/${action}`, {
+  const blockUsers = async () => {
+    await fetch("http://localhost:5199/api/User/block", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
+      credentials: "include",
       body: JSON.stringify({ userIds: selected }),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Operation failed");
-        return res.text();
-      })
-      .then(async (message) => {
-        setStatusMessage(message);
+    });
 
-        // Güncel kullanıcı listesini al
-        const usersRes = await fetch("https://usermanagementbackendapp-4.onrender.com/api/User", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        const usersData = await usersRes.json();
-        setUsers(usersData);
-        setSelected([]);
+    // Güncel kullanıcı hala aktif mi kontrol et
+    const res = await fetch("http://localhost:5199/api/User", {
+      credentials: "include",
+    });
+    const data = await res.json();
 
-        if (action === "block") {
-          const currentUserEmail = parseJwt(localStorage.getItem("token"))?.email;
-          const currentUser = usersData.find((u) => u.email === currentUserEmail);
+    const currentUserStillActive = data.users.some(
+      (u: any) => u.email === data.currentUserEmail && !u.isBlocked
+    );
 
-          if (currentUser?.isBlocked) {
-            localStorage.removeItem("token");
-            navigate("/");
-          }
-        }
-      })
-      .catch(() => setStatusMessage("An error occurred during the operation."));
-  };
-
-  const handleLogout = async () => {
-    try {
-      await fetch("https://usermanagementbackendapp-4.onrender.com/api/Authentication/logout", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-    } catch (err) {
-      // hata loglama isteğe bağlı
-    } finally {
-      localStorage.removeItem("token");
-      navigate("/");
+    if (!currentUserStillActive) {
+      navigate("/login");
+    } else {
+      setUsers(data.users);
+      setSelected([]);
     }
   };
 
+  const unblockUsers = async () => {
+    await fetch("http://localhost:5199/api/User/unblock", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ userIds: selected }),
+    });
+
+    const res = await fetch("http://localhost:5199/api/User", {
+      credentials: "include",
+    });
+    const data = await res.json();
+    setUsers(data.users);
+    setSelected([]);
+  };
+
   return (
-    <div className="container mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h3 className="mb-0">User Management</h3>
-        <button className="btn btn-outline-dark" onClick={handleLogout}>
-          Logout
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-4">User List</h2>
+      <ul className="space-y-2">
+        {users.map((user: any) => (
+          <li
+            key={user.id}
+            className={`flex items-center justify-between p-2 border rounded ${
+              selected.includes(user.id) ? "bg-gray-200" : ""
+            }`}
+            onClick={() => toggleSelection(user.id)}
+          >
+            <span>{user.email}</span>
+            <span
+              className={`text-sm px-2 py-1 rounded ${
+                user.isBlocked ? "bg-red-500 text-white" : "bg-green-500 text-white"
+              }`}
+            >
+              {user.isBlocked ? "🔒" : "🔓"}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="flex gap-2 mt-4">
+        <button
+          onClick={blockUsers}
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+        >
+          🔒 Block Selected
+        </button>
+        <button
+          onClick={unblockUsers}
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+        >
+          Unblock Selected
         </button>
       </div>
-
-      {statusMessage && (
-        <div className="alert alert-info p-2 py-1">{statusMessage}</div>
-      )}
-
-      <div className="mb-2 d-flex justify-content-between align-items-center">
-        <div>
-          <button
-            className="btn btn-outline-primary me-2"
-            onClick={() => handleAction("block")}
-            disabled={selected.length === 0}
-            title="Block selected users"
-          >
-            🔒
-          </button>
-          <button
-            className="btn btn-outline-secondary me-2"
-            title="Unblock selected users"
-            onClick={() => handleAction("unblock")}
-            disabled={selected.length === 0}
-          >
-            🔓
-          </button>
-          <button
-            className="btn btn-outline-danger"
-            title="Delete selected users"
-            onClick={() => handleAction("delete")}
-            disabled={selected.length === 0}
-          >
-            🗑
-          </button>
-        </div>
-      </div>
-
-      <table className="table table-bordered table-hover align-middle">
-        <thead className="table-light">
-          <tr>
-            <th>
-              <input
-                type="checkbox"
-                onChange={toggleSelectAll}
-                checked={selected.length === users.length && users.length > 0}
-              />
-            </th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Last Login</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.id}>
-              <td>
-                <input
-                  type="checkbox"
-                  checked={selected.includes(u.id)}
-                  onChange={() => toggleSelect(u.id)}
-                />
-              </td>
-              <td>{u.name}</td>
-              <td>{u.email}</td>
-              <td>{new Date(u.lastLogin).toLocaleString()}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 };
