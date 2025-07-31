@@ -45,7 +45,7 @@ const UserList = () => {
     );
 
     if (!currentUserStillActive) {
-      navigate("/login");
+      navigate("/");
     } else {
       setUsers(data.users);
       setSelected([]);
