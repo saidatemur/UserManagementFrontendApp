@@ -15,7 +15,7 @@ const SignUp = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:5199/api/Authentication/register', {
+      const response = await fetch('https://usermanagementbackendapp-4.onrender.com/api/Authentication/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
