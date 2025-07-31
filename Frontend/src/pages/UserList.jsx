@@ -66,7 +66,7 @@ const UserList = () => {
       .then(async (message) => {
         setStatusMessage(message);
 
-        // Kullanıcıları güncelle
+        // Güncel kullanıcı listesini al
         const usersRes = await fetch("https://usermanagementbackendapp-4.onrender.com/api/User", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -76,16 +76,11 @@ const UserList = () => {
         setUsers(usersData);
         setSelected([]);
 
-        const currentUserEmail = parseJwt(localStorage.getItem("token"))?.email;
-        const currentUser = usersData.find((u) => u.email === currentUserEmail);
-
         if (action === "block") {
+          const currentUserEmail = parseJwt(localStorage.getItem("token"))?.email;
+          const currentUser = usersData.find((u) => u.email === currentUserEmail);
+
           if (currentUser?.isBlocked) {
-            localStorage.removeItem("token");
-            navigate("/");
-          }
-        } else if (action === "delete") {
-          if (usersData.length === 0) {
             localStorage.removeItem("token");
             navigate("/");
           }
@@ -129,36 +124,25 @@ const UserList = () => {
             className="btn btn-outline-primary me-2"
             onClick={() => handleAction("block")}
             disabled={selected.length === 0}
+            title="Block selected users"
           >
-            Block
+            🔒
           </button>
           <button
             className="btn btn-outline-secondary me-2"
-            title="Unblock selected"
+            title="Unblock selected users"
             onClick={() => handleAction("unblock")}
             disabled={selected.length === 0}
           >
             🔓
           </button>
           <button
-            className="btn btn-outline-danger me-2"
-            title="Delete selected"
+            className="btn btn-outline-danger"
+            title="Delete selected users"
             onClick={() => handleAction("delete")}
             disabled={selected.length === 0}
           >
             🗑
-          </button>
-
-          <button
-            className="btn btn-outline-warning"
-            title="Block all users"
-            onClick={() => {
-              setSelected(users.map((u) => u.id));
-              setTimeout(() => handleAction("block"), 100);
-            }}
-            disabled={users.length === 0}
-          >
-            Block All
           </button>
         </div>
       </div>
