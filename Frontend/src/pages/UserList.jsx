@@ -41,6 +41,15 @@ const UserList = () => {
     }
   };
 
+  const parseJwt = (token) => {
+    if (!token) return null;
+    try {
+      return JSON.parse(atob(token.split(".")[1]));
+    } catch {
+      return null;
+    }
+  };
+
   const handleAction = (action) => {
     fetch(`https://usermanagementbackendapp-4.onrender.com/api/User/${action}`, {
       method: "POST",
@@ -54,18 +63,33 @@ const UserList = () => {
         if (!res.ok) throw new Error("Operation failed");
         return res.text();
       })
-      .then((message) => {
+      .then(async (message) => {
         setStatusMessage(message);
-        return fetch("https://usermanagementbackendapp-4.onrender.com/api/User", {
+
+        // Kullanıcıları güncelle
+        const usersRes = await fetch("https://usermanagementbackendapp-4.onrender.com/api/User", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-      })
-      .then((res) => res.json())
-      .then((data) => {
-        setUsers(data);
+        const usersData = await usersRes.json();
+        setUsers(usersData);
         setSelected([]);
+
+        const currentUserEmail = parseJwt(localStorage.getItem("token"))?.email;
+        const currentUser = usersData.find((u) => u.email === currentUserEmail);
+
+        if (action === "block") {
+          if (currentUser?.isBlocked) {
+            localStorage.removeItem("token");
+            navigate("/");
+          }
+        } else if (action === "delete") {
+          if (usersData.length === 0) {
+            localStorage.removeItem("token");
+            navigate("/");
+          }
+        }
       })
       .catch(() => setStatusMessage("An error occurred during the operation."));
   };
@@ -79,17 +103,12 @@ const UserList = () => {
         },
       });
     } catch (err) {
-      // log error (isteğe bağlı)
+      // hata loglama isteğe bağlı
     } finally {
       localStorage.removeItem("token");
       navigate("/");
     }
   };
-
-  const now = new Date();
-  const maxDiff = Math.max(
-    ...users.map((u) => (now - new Date(u.lastLogin)) / (1000 * 60 * 60))
-  );
 
   return (
     <div className="container mt-4">
@@ -109,6 +128,7 @@ const UserList = () => {
           <button
             className="btn btn-outline-primary me-2"
             onClick={() => handleAction("block")}
+            disabled={selected.length === 0}
           >
             Block
           </button>
@@ -116,15 +136,29 @@ const UserList = () => {
             className="btn btn-outline-secondary me-2"
             title="Unblock selected"
             onClick={() => handleAction("unblock")}
+            disabled={selected.length === 0}
           >
             🔓
           </button>
           <button
-            className="btn btn-outline-danger"
+            className="btn btn-outline-danger me-2"
             title="Delete selected"
             onClick={() => handleAction("delete")}
+            disabled={selected.length === 0}
           >
             🗑
+          </button>
+
+          <button
+            className="btn btn-outline-warning"
+            title="Block all users"
+            onClick={() => {
+              setSelected(users.map((u) => u.id));
+              setTimeout(() => handleAction("block"), 100);
+            }}
+            disabled={users.length === 0}
+          >
+            Block All
           </button>
         </div>
       </div>
@@ -136,7 +170,7 @@ const UserList = () => {
               <input
                 type="checkbox"
                 onChange={toggleSelectAll}
-                checked={selected.length === users.length}
+                checked={selected.length === users.length && users.length > 0}
               />
             </th>
             <th>Name</th>
@@ -145,7 +179,7 @@ const UserList = () => {
           </tr>
         </thead>
         <tbody>
-        {users.map((u) => (
+          {users.map((u) => (
             <tr key={u.id}>
               <td>
                 <input
