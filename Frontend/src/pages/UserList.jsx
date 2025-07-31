@@ -8,7 +8,7 @@ const UserList = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://localhost:5199/api/User", {
+    fetch("https://usermanagementbackendapp-4.onrender.com/api/User", {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
@@ -42,7 +42,7 @@ const UserList = () => {
   };
 
   const handleAction = (action) => {
-    fetch(`http://localhost:5199/api/User/${action}`, {
+    fetch(`https://usermanagementbackendapp-4.onrender.com/api/User/${action}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -56,7 +56,7 @@ const UserList = () => {
       })
       .then((message) => {
         setStatusMessage(message);
-        return fetch("http://localhost:5199/api/User", {
+        return fetch("https://usermanagementbackendapp-4.onrender.com/api/User", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -72,7 +72,7 @@ const UserList = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost:5199/api/Authentication/logout", {
+      await fetch("https://usermanagementbackendapp-4.onrender.com/api/Authentication/logout", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
