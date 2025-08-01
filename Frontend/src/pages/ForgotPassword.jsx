@@ -10,7 +10,7 @@ const ForgotPassword = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5199/api/Authentication/forgot-password', {
+      const response = await axios.post('https://usermanagementbackendapp-4.onrender.com/api/Authentication/forgot-password', {
         email: email
       });
       console.log("Token:", response.data.token); // Eğer backend token dönerse
