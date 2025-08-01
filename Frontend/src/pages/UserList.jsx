@@ -38,16 +38,6 @@ const UserList = () => {
       });
   }, [navigate]);
 
-  // Tüm kullanıcılar bloklandıysa yönlendirme
-  useEffect(() => {
-    if (
-      users.length > 0 &&
-      users.every((u) => u.isBlocked === true || u.isBlocked === "true")
-    ) {
-      navigate("/");
-    }
-  }, [users, navigate]);
-
   const toggleSelect = (id) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
@@ -103,8 +93,17 @@ const UserList = () => {
         );
         setUsers(sorted);
         setSelected([]);
+  
+        if (
+          usersData.length === 0 ||
+          usersData.every(
+            (u) => u.isBlocked === true || u.isBlocked === "true"
+          )
+        ) {
+          navigate("/");
+          return;
+        }
 
-        // Eğer şu anki kullanıcı bloklandıysa çıkış yap
         if (action === "block") {
           const currentUserEmail =
             parseJwt(localStorage.getItem("token"))?.email;
@@ -134,7 +133,6 @@ const UserList = () => {
         }
       );
     } catch (err) {
-      // opsiyonel hata loglama
     } finally {
       localStorage.removeItem("token");
       navigate("/");
