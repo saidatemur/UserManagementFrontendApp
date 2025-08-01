@@ -8,7 +8,7 @@ const UserList = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://localhost:5199/api/User", {
+    fetch("https://usermanagementbackendapp-4.onrender.com/api/User", {
       credentials: "include",
     })
       .then((res) => res.json())
@@ -25,7 +25,7 @@ const UserList = () => {
   };
 
   const blockUsers = async () => {
-    await fetch("http://localhost:5199/api/User/block", {
+    await fetch("https://usermanagementbackendapp-4.onrender.com/api/User/block", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -34,7 +34,7 @@ const UserList = () => {
       body: JSON.stringify({ userIds: selected }),
     });
 
-    const res = await fetch("http://localhost:5199/api/User", {
+    const res = await fetch("https://usermanagementbackendapp-4.onrender.com/api/User", {
       credentials: "include",
     });
     const data = await res.json();
@@ -53,7 +53,7 @@ const UserList = () => {
   };
 
   const unblockUsers = async () => {
-    await fetch("http://localhost:5199/api/User/unblock", {
+    await fetch("https://usermanagementbackendapp-4.onrender.com/api/User/unblock", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -62,7 +62,7 @@ const UserList = () => {
       body: JSON.stringify({ userIds: selected }),
     });
 
-    const res = await fetch("http://localhost:5199/api/User", {
+    const res = await fetch("https://usermanagementbackendapp-4.onrender.com/api/User", {
       credentials: "include",
     });
     const data = await res.json();
