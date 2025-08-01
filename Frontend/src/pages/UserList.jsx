@@ -8,50 +8,43 @@ const UserList = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("https://usermanagementbackendapp-4.onrender.com/api/User", {
+    fetch("https://user-management-backend-app.vercel.app/api/User", {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
     })
-      .then(async (res) => {
-        if (res.status === 401 || res.status === 403) {
-          navigate("/");
-        } else {
-          const data = await res.json();
-          const sorted = data.sort(
-            (a, b) => new Date(b.lastLogin) - new Date(a.lastLogin)
-          );
-          setUsers(sorted);
-        }
-      })
-      .catch(() => navigate("/"));
-  }, [navigate]);
+      .then((res) => res.json())
+      .then((data) => {
+        const sorted = data.sort(
+          (a, b) => new Date(b.lastLogin) - new Date(a.lastLogin)
+        );
+        setUsers(sorted);
 
-  const toggleSelect = (id) => {
+        // Eğer tüm kullanıcılar bloklanmışsa yönlendir
+        const allBlocked = sorted.length > 0 && sorted.every((u) => u.isBlocked);
+        if (allBlocked) {
+          localStorage.removeItem("token");
+          navigate("/");
+        }
+      });
+  }, []);
+
+  const handleCheckboxChange = (id) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
   };
 
-  const toggleSelectAll = () => {
-    if (selected.length === users.length) {
-      setSelected([]);
-    } else {
-      setSelected(users.map((u) => u.id));
-    }
-  };
-
-  const parseJwt = (token) => {
-    if (!token) return null;
-    try {
-      return JSON.parse(atob(token.split(".")[1]));
-    } catch {
-      return null;
-    }
-  };
-
   const handleAction = (action) => {
-    fetch(`https://usermanagementbackendapp-4.onrender.com/api/User/${action}`, {
+    if (selected.length === 0) return;
+
+    const url = {
+      block: "https://user-management-backend-app.vercel.app/api/User/block",
+      unblock: "https://user-management-backend-app.vercel.app/api/User/unblock",
+      delete: "https://user-management-backend-app.vercel.app/api/User/delete",
+    }[action];
+
+    fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -59,103 +52,65 @@ const UserList = () => {
       },
       body: JSON.stringify({ userIds: selected }),
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Operation failed");
-        return res.text();
-      })
-      .then(async (message) => {
-        setStatusMessage(message);
-        const usersRes = await fetch("https://usermanagementbackendapp-4.onrender.com/api/User", {
+      .then((res) => res.text())
+      .then((msg) => {
+        setStatusMessage(msg);
+
+        // Yeni verileri al
+        fetch("https://user-management-backend-app.vercel.app/api/User", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        });
-        const usersData = await usersRes.json();
-        setUsers(usersData);
-        setSelected([]);
-        if (action === "block") {
-          const currentUserEmail = parseJwt(localStorage.getItem("token"))?.email;
-          const currentUser = usersData.find((u) => u.email === currentUserEmail);
+        })
+          .then((res) => res.json())
+          .then((usersData) => {
+            const sorted = usersData.sort(
+              (a, b) => new Date(b.lastLogin) - new Date(a.lastLogin)
+            );
+            setUsers(sorted);
+            setSelected([]);
 
-          if (currentUser?.isBlocked) {
-            localStorage.removeItem("token");
-            navigate("/");
-          }
-        }
-      })
-      .catch(() => setStatusMessage("An error occurred during the operation."));
-  };
+            // Eğer kendini blokladıysan veya tüm kullanıcılar bloklandıysa yönlendir
+            const token = localStorage.getItem("token");
+            const parseJwt = (t) => {
+              try {
+                return JSON.parse(atob(t.split(".")[1]));
+              } catch {
+                return null;
+              }
+            };
+            const currentUser = parseJwt(token);
 
-  const handleLogout = async () => {
-    try {
-      await fetch("https://usermanagementbackendapp-4.onrender.com/api/Authentication/logout", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+            const currentUserBlocked = sorted.some(
+              (u) => u.id === currentUser?.id && u.isBlocked
+            );
+
+            const allBlocked = sorted.length > 0 && sorted.every((u) => u.isBlocked);
+
+            if (currentUserBlocked || allBlocked) {
+              localStorage.removeItem("token");
+              navigate("/");
+            }
+
+            // Eğer tüm kullanıcılar silindiyse yönlendir
+            if (usersData.length === 0) {
+              localStorage.removeItem("token");
+              navigate("/");
+            }
+          });
       });
-    } catch (err) {
-      // hata loglama isteğe bağlı
-    } finally {
-      localStorage.removeItem("token");
-      navigate("/");
-    }
   };
 
   return (
     <div className="container mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h3 className="mb-0">User Management</h3>
-        <button className="btn btn-outline-dark" onClick={handleLogout}>
-          Logout
-        </button>
-      </div>
-
-      {statusMessage && (
-        <div className="alert alert-info p-2 py-1">{statusMessage}</div>
-      )}
-
-      <div className="mb-2 d-flex justify-content-between align-items-center">
-        <div>
-          <button
-            className="btn btn-outline-primary me-2"
-            onClick={() => handleAction("block")}
-            disabled={selected.length === 0}
-            title="Block selected users"
-          >
-            🔒
-          </button>
-          <button
-            className="btn btn-outline-secondary me-2"
-            title="Unblock selected users"
-            onClick={() => handleAction("unblock")}
-            disabled={selected.length === 0}
-          >
-            🔓
-          </button>
-          <button
-          className="btn btn-outline-danger"
-          title="Delete selected users"
-          onClick={() => handleAction("delete")}
-          disabled={selected.length === 0}
-        >
-          🗑
-        </button>
-        </div>
-      </div>
-
-      <table className="table table-bordered table-hover align-middle">
-        <thead className="table-light">
+      <h2 className="mb-4">User Management</h2>
+      {statusMessage && <div className="alert alert-info">{statusMessage}</div>}
+      <table className="table table-bordered">
+        <thead>
           <tr>
-            <th>
-              <input
-                type="checkbox"
-                onChange={toggleSelectAll}
-                checked={selected.length === users.length && users.length > 0}
-              />
-            </th>
-            <th>Name</th>
+            <th>Select</th>
             <th>Email</th>
+            <th>Blocked</th>
             <th>Last Login</th>
           </tr>
         </thead>
@@ -166,16 +121,27 @@ const UserList = () => {
                 <input
                   type="checkbox"
                   checked={selected.includes(u.id)}
-                  onChange={() => toggleSelect(u.id)}
+                  onChange={() => handleCheckboxChange(u.id)}
                 />
               </td>
-              <td>{u.name}</td>
               <td>{u.email}</td>
+              <td>{u.isBlocked ? "Yes" : "No"}</td>
               <td>{new Date(u.lastLogin).toLocaleString()}</td>
             </tr>
           ))}
         </tbody>
       </table>
+      <div className="mt-3">
+        <button className="btn btn-warning me-2" onClick={() => handleAction("block")}>
+          Block
+        </button>
+        <button className="btn btn-success me-2" onClick={() => handleAction("unblock")}>
+          Unblock
+        </button>
+        <button className="btn btn-danger" onClick={() => handleAction("delete")}>
+          Delete
+        </button>
+      </div>
     </div>
   );
 };
