@@ -22,6 +22,9 @@ const UserList = () => {
             (a, b) => new Date(b.lastLogin) - new Date(a.lastLogin)
           );
           setUsers(sorted);
+          if (data.length === 0 || data.every((u) => u.isBlocked)) {
+            navigate("/");
+          }
         }
       })
       .catch(() => navigate("/"));
