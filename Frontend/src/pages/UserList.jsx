@@ -7,15 +7,6 @@ const UserList = () => {
   const [statusMessage, setStatusMessage] = useState("");
   const navigate = useNavigate();
 
-  const checkRedirectCondition = (data) => {
-    const allBlocked =
-      data.length > 0 &&
-      data.every((u) => u.isBlocked === true || u.isBlocked === "true");
-    if (data.length === 0 || allBlocked) {
-      setTimeout(() => navigate("/"), 0);
-    }
-  };
-
   useEffect(() => {
     fetch("https://usermanagementbackendapp-4.onrender.com/api/User", {
       headers: {
@@ -31,7 +22,6 @@ const UserList = () => {
             (a, b) => new Date(b.lastLogin) - new Date(a.lastLogin)
           );
           setUsers(sorted);
-          checkRedirectCondition(data);
         }
       })
       .catch((error) => {
@@ -95,7 +85,6 @@ const UserList = () => {
         );
         setUsers(sorted);
         setSelected([]);
-        checkRedirectCondition(usersData);
 
         if (action === "block") {
           const currentUserEmail =
