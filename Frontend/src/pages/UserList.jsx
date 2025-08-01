@@ -8,11 +8,11 @@ const UserList = () => {
   const navigate = useNavigate();
 
   const checkRedirectCondition = (data) => {
-    if (
-      data.length === 0 ||
-      data.every((u) => u.isBlocked === true || u.isBlocked === "true")
-    ) {
-      navigate("/");
+    const allBlocked =
+      data.length > 0 &&
+      data.every((u) => u.isBlocked === true || u.isBlocked === "true");
+    if (data.length === 0 || allBlocked) {
+      setTimeout(() => navigate("/"), 0);
     }
   };
 
@@ -95,7 +95,6 @@ const UserList = () => {
         );
         setUsers(sorted);
         setSelected([]);
-
         checkRedirectCondition(usersData);
 
         if (action === "block") {
