@@ -34,10 +34,20 @@ const UserList = () => {
       })
       .catch((error) => {
         console.error("Fetch error:", error);
+        navigate("/");
       });
   }, [navigate]);
-          
-  
+
+  // Tüm kullanıcılar bloklandıysa yönlendirme
+  useEffect(() => {
+    if (
+      users.length > 0 &&
+      users.every((u) => u.isBlocked === true || u.isBlocked === "true")
+    ) {
+      navigate("/");
+    }
+  }, [users, navigate]);
+
   const toggleSelect = (id) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
@@ -61,102 +71,70 @@ const UserList = () => {
     }
   };
 
-  useEffect(() => {
-    if (
-      users.length > 0 &&
-      users.every((u) => u.isBlocked === true || u.isBlocked === "true")
-    ) {
-      navigate("/");
-    }
-  }, [users, navigate]);
-
-  const handleAction = async (action) => {
-    if (selected.length === 0) {
-      setStatusMessage("Lütfen en az bir kullanıcı seçin.");
-      return;
-    }
-
-    const url = `https://usermanagementbackendapp-4.onrender.com/api/User/${action}`;
-    const method = action === "delete" ? "DELETE" : "PUT";
-
-    try {
-      const response = await fetch(url, {
-        method: method,
+  const handleAction = (action) => {
+    fetch(
+      `https://usermanagementbackendapp-4.onrender.com/api/User/${action}`,
+      {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        credentials: "include",
-        body: JSON.stringify(selected),
-      });
-
-      if (!response.ok) {
-        throw new Error(`İşlem başarısız: ${response.statusText}`);
+        body: JSON.stringify({ userIds: selected }),
       }
-
-      const usersResponse = await fetch(
-        "https://usermanagementbackendapp-4.onrender.com/api/User",
-        {
-          credentials: "include",
-        }
-      );
-      const usersData = await usersResponse.json();
-      const sorted = usersData.sort(
-        (a, b) => new Date(b.lastLogin) - new Date(a.lastLogin)
-      );
-      setUsers(sorted);
-      setSelected([]);
-      setStatusMessage("İşlem başarıyla tamamlandı.");
-    } catch (error) {
-      console.error("İşlem hatası:", error);
-      setStatusMessage("İşlem sırasında bir hata oluştu.");
-    }
-  };
-
-  const handleAction = (action) => {
-    fetch(`https://usermanagementbackendapp-4.onrender.com/api/User/${action}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({ userIds: selected }),
-    })
+    )
       .then((res) => {
         if (!res.ok) throw new Error("Operation failed");
         return res.text();
       })
       .then(async (message) => {
         setStatusMessage(message);
-        const usersRes = await fetch("https://usermanagementbackendapp-4.onrender.com/api/User", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
+        const usersRes = await fetch(
+          "https://usermanagementbackendapp-4.onrender.com/api/User",
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
         const usersData = await usersRes.json();
-        setUsers(usersData);
+        const sorted = usersData.sort(
+          (a, b) => new Date(b.lastLogin) - new Date(a.lastLogin)
+        );
+        setUsers(sorted);
         setSelected([]);
+
+        // Eğer şu anki kullanıcı bloklandıysa çıkış yap
         if (action === "block") {
-          const currentUserEmail = parseJwt(localStorage.getItem("token"))?.email;
-          const currentUser = usersData.find((u) => u.email === currentUserEmail);
+          const currentUserEmail =
+            parseJwt(localStorage.getItem("token"))?.email;
+          const currentUser = usersData.find(
+            (u) => u.email === currentUserEmail
+          );
           if (currentUser?.isBlocked) {
             localStorage.removeItem("token");
             navigate("/");
           }
         }
       })
-      .catch(() => setStatusMessage("An error occurred during the operation."));
+      .catch(() =>
+        setStatusMessage("An error occurred during the operation.")
+      );
   };
 
   const handleLogout = async () => {
     try {
-      await fetch("https://usermanagementbackendapp-4.onrender.com/api/Authentication/logout", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      await fetch(
+        "https://usermanagementbackendapp-4.onrender.com/api/Authentication/logout",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
     } catch (err) {
-      // hata loglama isteğe bağlı
+      // opsiyonel hata loglama
     } finally {
       localStorage.removeItem("token");
       navigate("/");
