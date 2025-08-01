@@ -132,7 +132,7 @@ const UserList = () => {
         localStorage.removeItem("token");
         navigate("/");
       });
-  }
+  };
 
   return (
     <div className="container mt-4">
