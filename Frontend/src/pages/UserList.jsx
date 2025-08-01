@@ -18,7 +18,7 @@ const UserList = () => {
       });
   }, []);
 
-  const toggleSelection = (id: string) => {
+  const toggleSelection = (id) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
@@ -34,17 +34,17 @@ const UserList = () => {
       body: JSON.stringify({ userIds: selected }),
     });
 
-    // Güncel kullanıcı hala aktif mi kontrol et
     const res = await fetch("http://localhost:5199/api/User", {
       credentials: "include",
     });
     const data = await res.json();
 
+    const allUsersBlocked = data.users.every((u) => u.isBlocked);
     const currentUserStillActive = data.users.some(
-      (u: any) => u.email === data.currentUserEmail && !u.isBlocked
+      (u) => u.email === data.currentUserEmail && !u.isBlocked
     );
 
-    if (!currentUserStillActive) {
+    if (allUsersBlocked || !currentUserStillActive) {
       navigate("/");
     } else {
       setUsers(data.users);
@@ -74,7 +74,7 @@ const UserList = () => {
     <div className="p-4">
       <h2 className="text-xl font-bold mb-4">User List</h2>
       <ul className="space-y-2">
-        {users.map((user: any) => (
+        {users.map((user) => (
           <li
             key={user.id}
             className={`flex items-center justify-between p-2 border rounded ${
