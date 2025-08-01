@@ -7,6 +7,15 @@ const UserList = () => {
   const [statusMessage, setStatusMessage] = useState("");
   const navigate = useNavigate();
 
+  const checkRedirectCondition = (data) => {
+    if (
+      data.length === 0 ||
+      data.every((u) => u.isBlocked === true || u.isBlocked === "true")
+    ) {
+      navigate("/");
+    }
+  };
+
   useEffect(() => {
     fetch("https://usermanagementbackendapp-4.onrender.com/api/User", {
       headers: {
@@ -22,14 +31,7 @@ const UserList = () => {
             (a, b) => new Date(b.lastLogin) - new Date(a.lastLogin)
           );
           setUsers(sorted);
-
-          // Eğer veri boşsa veya tüm kullanıcılar blokluysa yönlendir
-          if (
-            data.length === 0 ||
-            data.every((u) => u.isBlocked === true || u.isBlocked === "true")
-          ) {
-            navigate("/");
-          }
+          checkRedirectCondition(data);
         }
       })
       .catch((error) => {
@@ -93,16 +95,8 @@ const UserList = () => {
         );
         setUsers(sorted);
         setSelected([]);
-  
-        if (
-          usersData.length === 0 ||
-          usersData.every(
-            (u) => u.isBlocked === true || u.isBlocked === "true"
-          )
-        ) {
-          navigate("/");
-          return;
-        }
+
+        checkRedirectCondition(usersData);
 
         if (action === "block") {
           const currentUserEmail =
@@ -121,23 +115,24 @@ const UserList = () => {
       );
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch(
-        "https://usermanagementbackendapp-4.onrender.com/api/Authentication/logout",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-    } catch (err) {
-    } finally {
-      localStorage.removeItem("token");
-      navigate("/");
-    }
-  };
+  const handleLogout = () => {
+    fetch(
+      "https://usermanagementbackendapp-4.onrender.com/api/Authentication/logout",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    )
+      .catch((err) => {
+        console.error("Logout error:", err);
+      })
+      .finally(() => {
+        localStorage.removeItem("token");
+        navigate("/");
+      });
+  }
 
   return (
     <div className="container mt-4">
