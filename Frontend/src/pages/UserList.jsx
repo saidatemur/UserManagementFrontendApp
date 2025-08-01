@@ -18,18 +18,24 @@ const UserList = () => {
           navigate("/");
         } else {
           const data = await res.json();
+
+          if (
+            data.length === 0 ||
+            data.every((u) => u.isBlocked === true || u.isBlocked === "true")
+          ) {
+            navigate("/");
+            return; // 👉 sonrası çalışmasın diye return
+          }
+  
           const sorted = data.sort(
             (a, b) => new Date(b.lastLogin) - new Date(a.lastLogin)
           );
           setUsers(sorted);
-          if (users.length === 0 || users.every((u) => u.isBlocked=== true || u.isBlocked === "true")) {
-            navigate("/");
-          }
         }
       })
       .catch(() => navigate("/"));
   }, [navigate]);
-
+          
   const toggleSelect = (id) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
