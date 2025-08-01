@@ -22,7 +22,7 @@ const UserList = () => {
             (a, b) => new Date(b.lastLogin) - new Date(a.lastLogin)
           );
           setUsers(sorted);
-          if (data.length === 0 || data.every((u) => u.isBlocked)) {
+          if (data.length === 0 || data.every((u) => u.isBlocked=== true || u.isBlocked === "true")) {
             navigate("/");
           }
         }
