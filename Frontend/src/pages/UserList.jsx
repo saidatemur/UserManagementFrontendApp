@@ -18,24 +18,26 @@ const UserList = () => {
           navigate("/");
         } else {
           const data = await res.json();
+          const sorted = data.sort(
+            (a, b) => new Date(b.lastLogin) - new Date(a.lastLogin)
+          );
+          setUsers(sorted);
 
+          // Eğer veri boşsa veya tüm kullanıcılar blokluysa yönlendir
           if (
             data.length === 0 ||
             data.every((u) => u.isBlocked === true || u.isBlocked === "true")
           ) {
             navigate("/");
-            return; // 👉 sonrası çalışmasın diye return
           }
-  
-          const sorted = data.sort(
-            (a, b) => new Date(b.lastLogin) - new Date(a.lastLogin)
-          );
-          setUsers(sorted);
         }
       })
-      .catch(() => navigate("/"));
+      .catch((error) => {
+        console.error("Fetch error:", error);
+      });
   }, [navigate]);
           
+  
   const toggleSelect = (id) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
@@ -56,6 +58,57 @@ const UserList = () => {
       return JSON.parse(atob(token.split(".")[1]));
     } catch {
       return null;
+    }
+  };
+
+  useEffect(() => {
+    if (
+      users.length > 0 &&
+      users.every((u) => u.isBlocked === true || u.isBlocked === "true")
+    ) {
+      navigate("/");
+    }
+  }, [users, navigate]);
+
+  const handleAction = async (action) => {
+    if (selected.length === 0) {
+      setStatusMessage("Lütfen en az bir kullanıcı seçin.");
+      return;
+    }
+
+    const url = `https://usermanagementbackendapp-4.onrender.com/api/User/${action}`;
+    const method = action === "delete" ? "DELETE" : "PUT";
+
+    try {
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(selected),
+      });
+
+      if (!response.ok) {
+        throw new Error(`İşlem başarısız: ${response.statusText}`);
+      }
+
+      const usersResponse = await fetch(
+        "https://usermanagementbackendapp-4.onrender.com/api/User",
+        {
+          credentials: "include",
+        }
+      );
+      const usersData = await usersResponse.json();
+      const sorted = usersData.sort(
+        (a, b) => new Date(b.lastLogin) - new Date(a.lastLogin)
+      );
+      setUsers(sorted);
+      setSelected([]);
+      setStatusMessage("İşlem başarıyla tamamlandı.");
+    } catch (error) {
+      console.error("İşlem hatası:", error);
+      setStatusMessage("İşlem sırasında bir hata oluştu.");
     }
   };
 
